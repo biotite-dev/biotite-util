@@ -8,7 +8,7 @@ def create_dict(components_pdbx_file_path, msgpack_file_path,
     pdbx_file = pdbx.PDBxFile()
     pdbx_file.read(components_pdbx_file_path)
     components = pdbx_file.get_block_names()
-    mass_dict = {}
+    data_dict = {}
     for i, component in enumerate(components):
         print(f"{((i+1) / len(components) * 100):4.1f} %", end="\r")
         try:
@@ -17,14 +17,11 @@ def create_dict(components_pdbx_file_path, msgpack_file_path,
             # The 'chem_comp' category may contain unparsable names
             # with wrong quote escaping
             # In this case the PDBx file parser raises an Exception
-            continue
-        if cif_dict is None:
-            # No info for this compound
-            continue
-        mass_dict[component] = expected_type(cif_dict[subcategory])
+            cif_dict = None
+        data_dict[component] = expected_type(cif_dict[subcategory])
     print()
     with open(msgpack_file_path, "wb") as msgpack_file:
-        msgpack.dump(mass_dict, msgpack_file)
+        msgpack.dump(data_dict, msgpack_file)
 
 
 if __name__ == "__main__":
