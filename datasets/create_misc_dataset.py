@@ -18,7 +18,16 @@ def create_dict(components_pdbx_file_path, msgpack_file_path,
             # with wrong quote escaping
             # In this case the PDBx file parser raises an Exception
             cif_dict = None
-        data_dict[component] = expected_type(cif_dict[subcategory])
+        if cif_dict is None:
+            # No or erroneous info for this compound
+            data_dict[component] = None
+        else:
+            try:
+                data = expected_type(cif_dict[subcategory])
+            except ValueError:
+                # Unparsable data, e.g. '?' as float
+                data = None
+            data_dict[component] = data
     print()
     with open(msgpack_file_path, "wb") as msgpack_file:
         msgpack.dump(data_dict, msgpack_file)

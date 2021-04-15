@@ -26,11 +26,11 @@ def create_residue_dict(components_pdbx_file_path, msgpack_file_path):
             cif_general = pdbx_file.get_category("chem_comp", block=component)
         except ValueError:
             cif_general = None
-        cif_atoms = arrayfy(
-            pdbx_file.get_category("chem_comp_atom", block=component)
+        cif_atoms = pdbx_file.get_category(
+            "chem_comp_atom", block=component, expect_looped=True
         )
-        cif_bonds = arrayfy(
-            pdbx_file.get_category("chem_comp_bond", block=component)
+        cif_bonds = pdbx_file.get_category(
+            "chem_comp_bond", block=component, expect_looped=True
         )
         if cif_atoms is None:
             continue
@@ -74,10 +74,15 @@ def create_residue_dict(components_pdbx_file_path, msgpack_file_path):
             ):
                 atom_i = np.where(array.atom_name == atom1)[0][0]
                 atom_j = np.where(array.atom_name == atom2)[0][0]
+                bond_type = BOND_ORDERS[order]
                 if aromatic_flag == "Y":
-                    bond_type = struc.BondType.AROMATIC
-                else:
-                    bond_type = BOND_ORDERS[order]
+                    if bond_type == struc.BondType.SINGLE:
+                        bond_type = struc.BondType.AROMATIC_SINGLE
+                    elif bond_type == struc.BondType.DOUBLE:
+                        bond_type = struc.BondType.AROMATIC_DOUBLE
+                    else:
+                        # A formal triple bond cannot be aromatic
+                        raise ValueError("Invalid bond information")
                 bonds.add_bond(atom_i, atom_j, bond_type)
         array.bonds = bonds
         
@@ -86,23 +91,6 @@ def create_residue_dict(components_pdbx_file_path, msgpack_file_path):
     
     with open(msgpack_file_path, "wb") as msgpack_file:
         msgpack.dump(residue_dict, msgpack_file)
-
-
-
-def arrayfy(category):
-    if category is None:
-        return None
-    
-    sample_value = list(category.values())[0]
-    if isinstance(sample_value, str):
-        # Single string -> single value -> convert each value to array
-        arrayfied_category = {}
-        for key, val in category.items():
-            arrayfied_category[key] = np.array([val])
-        return arrayfied_category
-    else:
-        # Looped values -> Already array
-        return category
 
 
 def array_to_dict(array):
