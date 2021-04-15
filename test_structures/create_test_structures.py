@@ -13,17 +13,19 @@ def create(pdb_id, directory, include_gro):
     # Create *.pdb", *.cif and *.mmtf
     for file_format in ["pdb", "cif", "mmtf"]:
         rcsb.fetch(pdb_id, file_format, directory, overwrite=True)
+    try:
+        array = strucio.load_structure(join(directory, pdb_id+".pdb"))
+    except biotite.InvalidFileError:
+        # Structure probably contains multiple models with different
+        # number of atoms
+        # -> Cannot load AtomArrayStack
+        # -> Skip writing GRO and NPZ file 
+        return
+    # Create *.gro file
+    strucio.save_structure(join(directory, pdb_id+".npz"), array)
+    # Create *.gro files using GROMACS
+    # Clean PDB file -> remove inscodes and altlocs
     if include_gro:
-        # Create *.gro files using GROMACS
-        # Clean PDB file -> remove inscodes and altlocs
-        try:
-            array = strucio.load_structure(join(directory, pdb_id+".pdb"))
-        except biotite.InvalidFileError:
-            # Structure probably contains multiple models with different
-            # number of atoms
-            # -> Cannot load AtomArrayStack
-            # -> Skip writing GRO file 
-            return
         cleaned_file_name = biotite.temp_file("pdb")
         strucio.save_structure(cleaned_file_name, array)
         # Run GROMACS for file conversion
