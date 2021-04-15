@@ -12,16 +12,23 @@ import biotite.structure.io as strucio
 def create(pdb_id, directory, include_gro):
     # Create *.pdb", *.cif and *.mmtf
     for file_format in ["pdb", "cif", "mmtf"]:
-        rcsb.fetch(pdb_id, file_format, directory)
+        rcsb.fetch(pdb_id, file_format, directory, overwrite=True)
     if include_gro:
         # Create *.gro files using GROMACS
         # Clean PDB file -> remove inscodes and altlocs
-        array = strucio.load_structure(join(directory, pdb_id+".pdb"))
+        try:
+            array = strucio.load_structure(join(directory, pdb_id+".pdb"))
+        except biotite.InvalidFileError:
+            # Structure probably contains multiple models with different
+            # number of atoms
+            # -> Cannot load AtomArrayStack
+            # -> Skip writing GRO file 
+            return
         cleaned_file_name = biotite.temp_file("pdb")
         strucio.save_structure(cleaned_file_name, array)
         # Run GROMACS for file conversion
         subprocess.run([
-            "gmx", "editconf",
+            "editconf",
             "-f", cleaned_file_name,
             "-o", join(directory, pdb_id+".gro")
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -63,5 +70,8 @@ if __name__ == "__main__":
     
     for i, pdb_id in enumerate(pdb_ids):
         print(f"{i:2d}/{len(pdb_ids):2d}: {pdb_id}", end="\r")
-        print()
-        create(pdb_id, args.directory, args.include_gro)
+        try:
+            create(pdb_id, args.directory, args.include_gro)
+        except:
+            print()
+            raise
