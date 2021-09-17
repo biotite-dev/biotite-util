@@ -5,10 +5,13 @@ import biotite.structure.io.pdbx as pdbx
 
 
 BOND_ORDERS = {
-    "SING" : struc.BondType.SINGLE,
-    "DOUB" : struc.BondType.DOUBLE,
-    "TRIP" : struc.BondType.TRIPLE,
-    "QUAD" : struc.BondType.QUADRUPLE
+    ("SING", "N") : struc.BondType.SINGLE,
+    ("DOUB", "N") : struc.BondType.DOUBLE,
+    ("TRIP", "N") : struc.BondType.TRIPLE,
+    ("QUAD", "N") : struc.BondType.QUADRUPLE,
+    ("SING", "Y") : struc.BondType.AROMATIC_SINGLE,
+    ("DOUB", "Y") : struc.BondType.AROMATIC_DOUBLE,
+    ("TRIP", "Y") : struc.BondType.AROMATIC_TRIPLE,
 }
 
 
@@ -31,15 +34,7 @@ def create_bond_dict(components_pdbx_file_path, msgpack_file_path):
                 cif_bonds["atom_id_1"], cif_bonds["atom_id_2"],
                 cif_bonds["value_order"], cif_bonds["pdbx_aromatic_flag"]
             ):
-                bond_type = BOND_ORDERS[order]
-                if aromatic_flag == "Y":
-                    if bond_type == struc.BondType.SINGLE:
-                        bond_type = struc.BondType.AROMATIC_SINGLE
-                    elif bond_type == struc.BondType.DOUBLE:
-                        bond_type = struc.BondType.AROMATIC_DOUBLE
-                    else:
-                        # A formal triple bond cannot be aromatic
-                        raise ValueError("Invalid bond information")
+                bond_type = BOND_ORDERS[order, aromatic_flag]
                 group_bonds[(atom1, atom2)] = bond_type
         bond_dict[component] = group_bonds
     with open(msgpack_file_path, "wb") as msgpack_file:

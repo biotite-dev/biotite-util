@@ -6,10 +6,13 @@ import biotite.structure.io.pdbx as pdbx
 
 
 BOND_ORDERS = {
-    "SING" : struc.BondType.SINGLE,
-    "DOUB" : struc.BondType.DOUBLE,
-    "TRIP" : struc.BondType.TRIPLE,
-    "QUAD" : struc.BondType.QUADRUPLE
+    ("SING", "N") : struc.BondType.SINGLE,
+    ("DOUB", "N") : struc.BondType.DOUBLE,
+    ("TRIP", "N") : struc.BondType.TRIPLE,
+    ("QUAD", "N") : struc.BondType.QUADRUPLE,
+    ("SING", "Y") : struc.BondType.AROMATIC_SINGLE,
+    ("DOUB", "Y") : struc.BondType.AROMATIC_DOUBLE,
+    ("TRIP", "Y") : struc.BondType.AROMATIC_TRIPLE,
 }
 
 
@@ -74,15 +77,7 @@ def create_residue_dict(components_pdbx_file_path, msgpack_file_path):
             ):
                 atom_i = np.where(array.atom_name == atom1)[0][0]
                 atom_j = np.where(array.atom_name == atom2)[0][0]
-                bond_type = BOND_ORDERS[order]
-                if aromatic_flag == "Y":
-                    if bond_type == struc.BondType.SINGLE:
-                        bond_type = struc.BondType.AROMATIC_SINGLE
-                    elif bond_type == struc.BondType.DOUBLE:
-                        bond_type = struc.BondType.AROMATIC_DOUBLE
-                    else:
-                        # A formal triple bond cannot be aromatic
-                        raise ValueError("Invalid bond information")
+                bond_type = BOND_ORDERS[order, aromatic_flag]
                 bonds.add_bond(atom_i, atom_j, bond_type)
         array.bonds = bonds
         
