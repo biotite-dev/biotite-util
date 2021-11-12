@@ -51,6 +51,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--package", "-p", dest="package", default="biotite",
         help="Name of the project to be distributed")
+    parser.add_argument(
+        "--nodoc", "-n", dest="nodoc", action="store_true",
+        help="Do not upload the documentation")
     args = parser.parse_args()
     
     temp_dir = tempfile.gettempdir()
@@ -70,7 +73,7 @@ if __name__ == "__main__":
             doc_url = url
         else:
             raise ValueError(f"Unknown asset '{name}'")
-    if doc_url is None:
+    if doc_url is None and not args.nodoc:
         raise ValueError("Release has no documentation")
 
 
@@ -79,31 +82,32 @@ if __name__ == "__main__":
     twine_upload([f"{dist_dir}/*"])
 
 
-    # Upload documentation on host server
-    print("Upload documentation to host server...")
-    hostname = input("Hostname: ")
-    username = input("Username: ")
-    password = getpass.getpass()
-    html_dir = f"./{args.package}"
+    if not args.nodoc:
+        # Upload documentation on host server
+        print("Upload documentation to host server...")
+        hostname = input("Hostname: ")
+        username = input("Username: ")
+        password = getpass.getpass()
+        html_dir = f"./{args.package}"
 
-    client = SSHClient()
-    client.set_missing_host_key_policy(AutoAddPolicy)
-    client.connect(hostname=hostname, username=username, password=password)
+        client = SSHClient()
+        client.set_missing_host_key_policy(AutoAddPolicy)
+        client.connect(hostname=hostname, username=username, password=password)
 
-    # Naviagte into home directory
-    remote_exec(client, f"cd /home/{username}")
-    # Download zipped documentation into home directory
-    remote_exec(client, f"wget -q {doc_url}")
-    # Remove currently published documentation
-    remote_exec(client, f"rm -rf {html_dir}/*")
-    # Make sure that the directory we unpack to is not existing
-    remote_exec(client, f"rm -rf doc")
-    # Unpack documentation
-    remote_exec(client, f"unzip -q doc.zip")
-    # Publish documentation
-    remote_exec(client, f"mv doc/* {html_dir}")
-    # Remove intermediate files
-    remote_exec(client, f"rm -r doc")
-    remote_exec(client, f"rm doc.zip")
+        # Naviagte into home directory
+        remote_exec(client, f"cd /home/{username}")
+        # Download zipped documentation into home directory
+        remote_exec(client, f"wget -q {doc_url}")
+        # Remove currently published documentation
+        remote_exec(client, f"rm -rf {html_dir}/*")
+        # Make sure that the directory we unpack to is not existing
+        remote_exec(client, f"rm -rf doc")
+        # Unpack documentation
+        remote_exec(client, f"unzip -q doc.zip")
+        # Publish documentation
+        remote_exec(client, f"mv doc/* {html_dir}")
+        # Remove intermediate files
+        remote_exec(client, f"rm -r doc")
+        remote_exec(client, f"rm doc.zip")
 
-    client.close()
+        client.close()
