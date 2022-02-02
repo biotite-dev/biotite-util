@@ -52,8 +52,11 @@ if __name__ == "__main__":
         "--package", "-p", dest="package", default="biotite",
         help="Name of the project to be distributed")
     parser.add_argument(
-        "--nodoc", "-n", dest="nodoc", action="store_true",
+        "--nodoc", dest="nodoc", action="store_true",
         help="Do not upload the documentation")
+    parser.add_argument(
+        "--nodist", dest="nodist", action="store_true",
+        help="Do not upload the the distributions to PyPI")
     args = parser.parse_args()
     
     temp_dir = tempfile.gettempdir()
@@ -63,11 +66,12 @@ if __name__ == "__main__":
     doc_url=None
     for name, url in get_asset_urls(args.package, args.version).items():
         if name.startswith(args.package):
-            # Distribution file (.whl or .tar.gz)
-            r = requests.get(url)
-            fname = join(dist_dir, name)
-            with open(fname, "wb") as file:
-                file.write(r.content)
+            if not args.nodist:
+                # Distribution file (.whl or .tar.gz)
+                r = requests.get(url)
+                fname = join(dist_dir, name)
+                with open(fname, "wb") as file:
+                    file.write(r.content)
         elif name == "doc.zip":
             # Documentation file
             doc_url = url
@@ -78,8 +82,9 @@ if __name__ == "__main__":
 
 
     # Upload distributions to PyPI
-    print("Upload distributions to PyPI...")
-    twine_upload([f"{dist_dir}/*"])
+    if not args.nodist:
+        print("Upload distributions to PyPI...")
+        twine_upload([f"{dist_dir}/*"])
 
 
     if not args.nodoc:
