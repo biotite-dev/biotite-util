@@ -8,8 +8,8 @@ wget https://github.com/biotite-dev/biotite/archive/refs/tags/v$1.tar.gz
 tar -xf v$1.tar.gz
 cd biotite-$1
 
-conda remove -n biotite-gallery --all
-conda env create -n biotite-gallery -f environment.yml
+mamba remove -n biotite-gallery --all
+mamba env create -n biotite-gallery -f environment.yml
 
 source activate biotite-gallery
 python setup.py install
