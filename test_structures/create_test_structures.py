@@ -5,21 +5,26 @@ import logging
 import os
 import sys
 import biotite
+from biotite.database import RequestError
 import biotite.database.rcsb as rcsb
 import biotite.structure.io as strucio
 
 
 def create(pdb_id, directory, include_gro):
     # Create *.pdb", *.cif and *.mmtf
-    for file_format in ["pdb", "cif", "mmtf"]:
-        rcsb.fetch(pdb_id, file_format, directory, overwrite=True)
+    for file_format in ["pdb", "cif", "bcif", "mmtf"]:
+        try:
+            rcsb.fetch(pdb_id, file_format, directory, overwrite=True)
+        except RequestError:
+            # PDB entry is not provided in this format
+            pass
     try:
         array = strucio.load_structure(join(directory, pdb_id+".pdb"))
     except biotite.InvalidFileError:
         # Structure probably contains multiple models with different
         # number of atoms
         # -> Cannot load AtomArrayStack
-        # -> Skip writing GRO and NPZ file 
+        # -> Skip writing GRO and NPZ file
         return
     # Create *.gro file
     strucio.save_structure(join(directory, pdb_id+".npz"), array)
@@ -59,7 +64,7 @@ if __name__ == "__main__":
         help="Create '*.gro' files using the Gromacs software"
     )
     args = parser.parse_args()
-    
+
     if args.file is not None:
         with open(args.file, "r") as file:
             pdb_ids = [pdb_id.strip().lower() for pdb_id
@@ -69,7 +74,7 @@ if __name__ == "__main__":
     else:
         logging.error("Must specifiy PDB ID(s)")
         sys.exit()
-    
+
     for i, pdb_id in enumerate(pdb_ids):
         print(f"{i:2d}/{len(pdb_ids):2d}: {pdb_id}", end="\r")
         try:
